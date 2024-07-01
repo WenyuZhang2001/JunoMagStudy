@@ -73,8 +73,24 @@ import Spherical_Harmonic_InversionModel_Functions
 #
 # print('_'+str(0.1))
 
-A = np.array([1,2,3])
-B = np.array([4,5,6])
-C = np.vstack((A,B)).T.reshape(-1)
-print(C)
-print(list(range(1,3)))
+# A = np.array([1,2,3])
+# B = np.array([4,5,6])
+# C = np.vstack((A,B)).T.reshape(-1)
+# print(C)
+# print(list(range(1,3)))
+# import tensorflow as tf
+# from tensorflow.keras import Sequential
+# from tensorflow.keras.layers import Dense
+#
+# # Create a simple model
+# model = Sequential([Dense(1, input_shape=(10,))])
+# model.compile(optimizer='adam', loss='mse')
+#
+# # Save the model
+# model_path = 'test_model.h5'
+# model.save(model_path)
+#
+# # Load the model
+# loaded_model = tf.keras.models.load_model(model_path)
+
+print(np.sqrt(4900**2+2665**2+1724**2))

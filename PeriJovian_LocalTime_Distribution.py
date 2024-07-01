@@ -315,7 +315,7 @@ if __name__ == '__main__':
 
     os.makedirs(f'Result_pic/LocalTimeDistribution', exist_ok=True)
 
-    data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_1s_2h.csv')
+    data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_60s_24h.csv')
     print('Data Keys:')
     print(data.keys())
     # data = data.iloc[::100]
@@ -327,9 +327,11 @@ if __name__ == '__main__':
     # pd.set_option('display.max_columns', None)
     # print(data.describe())
 
-    B_Ex = Juno_Mag_MakeData_Function.MagneticField_External(data)
-    Model = 'jrm33'
-    B_In = Juno_Mag_MakeData_Function.MagneticField_Internal(data,model=Model,degree=30)
+    # B_Ex = Juno_Mag_MakeData_Function.MagneticField_External(data)
+    B_Ex = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Ex_60s_24h.csv')
+    # Model = 'jrm33'
+    # B_In = Juno_Mag_MakeData_Function.MagneticField_Internal(data,model=Model,degree=30)
+    B_In = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_In_60s_24h.csv')
 
     # North and South data
     data_North = data[data['Latitude'] >= 0]
@@ -353,6 +355,8 @@ if __name__ == '__main__':
         lambda row: apply_rotation(row, row['Br'], row['Btheta'], row['Bphi'], Coord='Spherical'), axis=1)
 
     # LocalTime_Observation_Distribution(data, mark='Global')
+
+    B_Residual.to_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Residual_60s_24h.csv')
 
     component_list = ['Br', 'Btheta', 'Bphi', 'Btotal', 'Bx', 'By', 'Bz',
                       'Bx_ss', 'By_ss', 'Bz_ss', 'Br_ss', 'Btheta_ss', 'Bphi_ss']

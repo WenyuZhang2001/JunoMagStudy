@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+from scipy.spatial.transform import Rotation as R
 # In[53]:
 
-
+import pandas as pd
 from scipy.spatial.transform import Rotation
 import numpy as np
 
@@ -85,3 +85,39 @@ def SphericaltoCartesian(r,theta,phi):
     z = r*np.cos(theta)
 
     return x,y,z
+def calculate_rotation_matrix(row,Coord='Cartesian'):
+    if Coord=='Cartesian':
+        v1 = np.array([row['Bx'], row['By'], row['Bz']])
+        v2 = np.array([row['Bx_ss'], row['By_ss'], row['Bz_ss']])
+    elif Coord == 'Spherical':
+        v1 = np.array([row['Br'], row['Btheta'], row['Bphi']])
+        v2 = np.array([row['Br_ss'], row['Btheta_ss'], row['Bphi_ss']])
+
+    v1_normalized = v1 / np.linalg.norm(v1)
+    v2_normalized = v2 / np.linalg.norm(v2)
+    rotation = R.align_vectors([v2_normalized], [v1_normalized])[0]
+    return rotation.as_matrix()
+def apply_rotation(row, bx, by, bz, Coord='Cartesian'):
+    return pd.Series(row[f'rotation_matrix_{Coord}'].dot([bx, by, bz]))
+
+def SysIIItoSS_Bfield(data,Bfield):
+
+    # doing the Rotation matrix calculation PC to SS
+    data['rotation_matrix_Cartesian'] = data.apply(calculate_rotation_matrix, axis=1, args=('Cartesian',))
+    data['rotation_matrix_Spherical'] = data.apply(calculate_rotation_matrix, axis=1, args=('Spherical',))
+
+    component_list = ['LocalTime', 'r', 'Latitude_ss', 'X_ss', 'Y_ss', 'Z_ss']
+    for component in component_list:
+        Bfield[component] = data[component]
+
+        # Join df1 and df2 to apply rotations correctly
+    df_combined = Bfield.join(data[['rotation_matrix_Cartesian', 'rotation_matrix_Spherical']])
+
+    # Applying rotation to Bx, By, Bz
+    Bfield[['Bx_ss', 'By_ss', 'Bz_ss']] = df_combined.apply(
+        lambda row: apply_rotation(row, row['Bx'], row['By'], row['Bz'], Coord='Cartesian'), axis=1)
+    # Applying rotation to Br, Btheta, Bphi
+    Bfield[['Br_ss', 'Btheta_ss', 'Bphi_ss']] = df_combined.apply(
+        lambda row: apply_rotation(row, row['Br'], row['Btheta'], row['Bphi'], Coord='Spherical'), axis=1)
+
+    return Bfield

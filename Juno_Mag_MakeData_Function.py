@@ -109,9 +109,9 @@ def data_process(data,Rj = 71492):
     data['X'] = data['X']/Rj
     data['Y'] = data['Y']/Rj
     data['Z'] = data['Z']/Rj
-    data['Xss'] = data['Xss'] / Rj
-    data['Yss'] = data['Yss'] / Rj
-    data['Zss'] = data['Zss'] / Rj
+    data['X_ss'] = data['X_ss'] / Rj
+    data['Y_ss'] = data['Y_ss'] / Rj
+    data['Z_ss'] = data['Z_ss'] / Rj
 
     r,theta,phi = CoordinateTransform.CartesiantoSpherical(data['X'].to_numpy(),
                                                            data['Y'].to_numpy(),
@@ -125,9 +125,9 @@ def data_process(data,Rj = 71492):
     data['Latitude'] = Lat
     data['Longitude'] = Long
 
-    r_ss, theta_ss, phi_ss = CoordinateTransform.CartesiantoSpherical(data['Xss'].to_numpy(),
-                                                             data['Yss'].to_numpy(),
-                                                             data['Zss'].to_numpy())
+    r_ss, theta_ss, phi_ss = CoordinateTransform.CartesiantoSpherical(data['X_ss'].to_numpy(),
+                                                             data['Y_ss'].to_numpy(),
+                                                             data['Z_ss'].to_numpy())
     Lat_ss = 90 - theta_ss
     Long_ss = np.where(phi_ss < 0, 360 + phi_ss, phi_ss)
     LocalTime = Long_ss*24/360 + 12.0
@@ -147,11 +147,11 @@ def data_process(data,Rj = 71492):
     data['Bx'] = data['Bx'].map(float)
     data['By'] = data['By'].map(float)
     data['Bz'] = data['Bz'].map(float)
-    data['Btotal'] = (data['Bx']**2+data['By']**2+data['Bz']**2)**0.5
-    data['BxSS'] = data['BxSS'].map(float)
-    data['BySS'] = data['BySS'].map(float)
-    data['BzSS'] = data['BzSS'].map(float)
-    data['BtotalSS'] = (data['BxSS'] ** 2 + data['BySS'] ** 2 + data['BzSS'] ** 2) ** 0.5
+    data['Btotal'] = np.sqrt(data['Bx']**2+data['By']**2+data['Bz']**2)
+    data['Bx_ss'] = data['Bx_ss'].map(float)
+    data['By_ss'] = data['By_ss'].map(float)
+    data['Bz_ss'] = data['Bz_ss'].map(float)
+    data['Btotal_ss'] = np.sqrt(data['Bx_ss'] ** 2 + data['By_ss'] ** 2 + data['Bz_ss'] ** 2)
 
     Br,Btheta,Bphi = CoordinateTransform.CartesiantoSpherical_Bfield(data['X'].to_numpy(),
                                                                     data['Y'].to_numpy(),
@@ -163,12 +163,12 @@ def data_process(data,Rj = 71492):
     data['Bphi'] = Bphi
     data['Btheta'] = Btheta
 
-    Br_ss, Btheta_ss, Bphi_ss = CoordinateTransform.CartesiantoSpherical_Bfield(data['Xss'].to_numpy(),
-                                                                       data['Yss'].to_numpy(),
-                                                                       data['Zss'].to_numpy(),
-                                                                       data['BxSS'].to_numpy(),
-                                                                       data['BySS'].to_numpy(),
-                                                                       data['BzSS'].to_numpy())
+    Br_ss, Btheta_ss, Bphi_ss = CoordinateTransform.CartesiantoSpherical_Bfield(data['X_ss'].to_numpy(),
+                                                                       data['Y_ss'].to_numpy(),
+                                                                       data['Z_ss'].to_numpy(),
+                                                                       data['Bx_ss'].to_numpy(),
+                                                                       data['By_ss'].to_numpy(),
+                                                                       data['Bz_ss'].to_numpy())
     data['Br_ss'] = Br_ss
     data['Bphi_ss'] = Bphi_ss
     data['Btheta_ss'] = Btheta_ss
@@ -180,8 +180,8 @@ def data_process(data,Rj = 71492):
 def Read_Data(year_doy,directory_path = 'JunoFGMData/',freq=1):
     change_stsTocsv(directory_path)
     col_names_pc = ['Year','Doy','Hour','Min','Sec','Msec','DDay','Bx','By','Bz','Range','X','Y','Z']
-    col_names_ss = ['Year','Doy','Hour','Min','Sec','Msec','DDay','BxSS','BySS','BzSS','Range','Xss','Yss','Zss']
-    col_names = ['Bx','By','Bz','X','Y','Z','BxSS','BySS','BzSS','Xss','Yss','Zss']
+    col_names_ss = ['Year','Doy','Hour','Min','Sec','Msec','DDay','Bx_ss','By_ss','Bz_ss','Range','X_ss','Y_ss','Z_ss']
+    col_names = ['Bx','By','Bz','X','Y','Z','Bx_ss','By_ss','Bz_ss','X_ss','Y_ss','Z_ss']
     data = pd.DataFrame(columns=col_names)
     for year in year_doy.keys():
         for doy in year_doy[year]:
@@ -438,7 +438,7 @@ def read_24hData(year_doy_pj,freq=60):
                 data = pd.concat([data, data_day])
     return data
 
-def Caluclate_B_Residual(data,B_In,B_Ex):
+def Caluclate_B_Residual(data,B_In,B_Ex,Coor_SYS3=True,Coor_SS=False):
     '''
 
     :param data: MAG data
@@ -446,21 +446,39 @@ def Caluclate_B_Residual(data,B_In,B_Ex):
     :param B_Ex: B External
     :return: B Residual Field
     '''
+    B_residual = pd.DataFrame(index=data.index)
+    if Coor_SYS3:
 
-    B_residual = pd.DataFrame(index = data.index)
-    component = 'Br'
-    B_residual[component] = data[component]-B_In[component]-B_Ex[component]
-    component = 'Btheta'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
-    component = 'Bphi'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
-    component = 'Bx'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
-    component = 'By'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
-    component = 'Bz'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
-    component = 'Btotal'
-    B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Br'
+        B_residual[component] = data[component]-B_In[component]-B_Ex[component]
+        component = 'Btheta'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bphi'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bx'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'By'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bz'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Btotal'
+        B_residual[component] = np.sqrt(B_residual['Br']**2+B_residual['Btheta']**2+B_residual['Bphi']**2)
+
+    if Coor_SS:
+
+        component = 'Br_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Btheta_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bphi_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bx_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'By_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Bz_ss'
+        B_residual[component] = data[component] - B_In[component] - B_Ex[component]
+        component = 'Btotal'
+        B_residual[component] = np.sqrt(B_residual['Br_ss']**2+B_residual['Btheta_ss']**2+B_residual['Bphi_ss']**2)
 
     return  B_residual
