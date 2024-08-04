@@ -173,7 +173,7 @@ def read_data(year_doy_pj,time_period=24):
             elif time_period == 2:
                 PeriJovian_time = Data['r'].idxmin()
                 Time_start = PeriJovian_time - Juno_Mag_MakeData_Function.hour_1 * 1
-                Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 3
+                Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 2
 
 
 

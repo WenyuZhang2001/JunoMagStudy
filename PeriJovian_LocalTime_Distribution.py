@@ -296,7 +296,7 @@ def Spatial_3D_B_Residual_Plotly(B_Residual, component='Btotal', mark=''):
 def calculate_rotation_matrix(row,Coord='Cartesian'):
     if Coord=='Cartesian':
         v1 = np.array([row['Bx'], row['By'], row['Bz']])
-        v2 = np.array([row['BxSS'], row['BySS'], row['BzSS']])
+        v2 = np.array([row['Bx_ss'], row['By_ss'], row['Bz_ss']])
     elif Coord == 'Spherical':
         v1 = np.array([row['Br'], row['Btheta'], row['Bphi']])
         v2 = np.array([row['Br_ss'], row['Btheta_ss'], row['Bphi_ss']])
@@ -315,7 +315,8 @@ if __name__ == '__main__':
 
     os.makedirs(f'Result_pic/LocalTimeDistribution', exist_ok=True)
 
-    data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_60s_24h.csv')
+    data = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_1s_2h.csv')
+    # data = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_60s_24h.csv')
     print('Data Keys:')
     print(data.keys())
     # data = data.iloc[::100]
@@ -328,10 +329,12 @@ if __name__ == '__main__':
     # print(data.describe())
 
     # B_Ex = Juno_Mag_MakeData_Function.MagneticField_External(data)
-    B_Ex = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Ex_60s_24h.csv')
+    B_Ex = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Ex_1s_2h.csv')
+    # B_Ex = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Ex_60s_24h.csv')
     # Model = 'jrm33'
     # B_In = Juno_Mag_MakeData_Function.MagneticField_Internal(data,model=Model,degree=30)
-    B_In = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_In_60s_24h.csv')
+    B_In = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_In_1s_2h.csv')
+    # B_In = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_In_60s_24h.csv')
 
     # North and South data
     data_North = data[data['Latitude'] >= 0]
@@ -340,7 +343,7 @@ if __name__ == '__main__':
     # Global
     B_Residual = Juno_Mag_MakeData_Function.Caluclate_B_Residual(data, B_In=B_In, B_Ex=B_Ex)
 
-    component_list = ['LocalTime','r','Latitude_ss','Xss','Yss','Zss']
+    component_list = ['LocalTime','r','theta','phi','Latitude_ss','X_ss','Y_ss','Z_ss']
     for component in component_list:
         B_Residual[component] = data[component]
 
@@ -355,8 +358,9 @@ if __name__ == '__main__':
         lambda row: apply_rotation(row, row['Br'], row['Btheta'], row['Bphi'], Coord='Spherical'), axis=1)
 
     # LocalTime_Observation_Distribution(data, mark='Global')
-
-    B_Residual.to_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Residual_60s_24h.csv')
+    B_Residual['Time'] = data['Time']
+    B_Residual.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Residual_1s_2h.csv')
+    # B_Residual.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Residual_60s_24h.csv')
 
     component_list = ['Br', 'Btheta', 'Bphi', 'Btotal', 'Bx', 'By', 'Bz',
                       'Bx_ss', 'By_ss', 'Bz_ss', 'Br_ss', 'Btheta_ss', 'Bphi_ss']
@@ -370,7 +374,7 @@ if __name__ == '__main__':
 
     # North
     B_Residual = Juno_Mag_MakeData_Function.Caluclate_B_Residual(data_North,B_In=B_In,B_Ex=B_Ex)
-    component_list = ['LocalTime', 'r', 'Latitude_ss', 'Xss', 'Yss', 'Zss']
+    component_list = ['LocalTime', 'r', 'Latitude_ss', 'X_ss', 'Y_ss', 'Z_ss']
     for component in component_list:
         B_Residual[component] = data_North[component]
 
@@ -395,7 +399,7 @@ if __name__ == '__main__':
 
     # South
     B_Residual = Juno_Mag_MakeData_Function.Caluclate_B_Residual(data_South, B_In=B_In, B_Ex=B_Ex)
-    component_list = ['LocalTime', 'r', 'Latitude_ss', 'Xss', 'Yss', 'Zss']
+    component_list = ['LocalTime', 'r', 'Latitude_ss', 'X_ss', 'Y_ss', 'Z_ss']
     for component in component_list:
         B_Residual[component] = data_South[component]
 

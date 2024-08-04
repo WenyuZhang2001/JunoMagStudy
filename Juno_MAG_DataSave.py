@@ -82,8 +82,8 @@ Model = 'jrm33'
 # read the data
 def read_data(year_doy_pj):
     data = pd.DataFrame()
-    # B_In = pd.DataFrame()
-    # B_Ex = pd.DataFrame()
+    B_In = pd.DataFrame()
+    B_Ex = pd.DataFrame()
 
     for year in year_doy_pj.keys():
         for doy in year_doy_pj[year]:
@@ -103,30 +103,30 @@ def read_data(year_doy_pj):
             PeriJovian_time = Data['r'].idxmin()
             # 2 hour window data
             Time_start = PeriJovian_time - Juno_Mag_MakeData_Function.hour_1 * 1
-            Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 3
+            Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 2
 
             data_day = Data.loc[Time_start:Time_end]
             # data_day = data_day[::60]
 
-            # B_Ex_day = Juno_Mag_MakeData_Function.MagneticField_External(data_day)
-            # B_In_day = Juno_Mag_MakeData_Function.MagneticField_Internal(data_day, model=Model, degree=30)
+            B_Ex_day = Juno_Mag_MakeData_Function.MagneticField_External(data_day)
+            B_In_day = Juno_Mag_MakeData_Function.MagneticField_Internal(data_day, model=Model, degree=30)
 
             if data.empty:
                 data = data_day
             else:
                 data = pd.concat([data, data_day])
 
-            # if B_Ex.empty:
-            #     B_Ex = B_Ex_day
-            # else:
-            #     B_Ex = pd.concat([B_Ex,B_Ex_day])
-            #
-            # if B_In.empty:
-            #     B_In = B_In_day
-            # else:
-            #     B_In = pd.concat([B_In,B_In_day])
+            if B_Ex.empty:
+                B_Ex = B_Ex_day
+            else:
+                B_Ex = pd.concat([B_Ex,B_Ex_day])
 
-    return data #,B_In,B_Ex
+            if B_In.empty:
+                B_In = B_In_day
+            else:
+                B_In = pd.concat([B_In,B_In_day])
+
+    return data ,B_In,B_Ex
 
 def Save_B_Residual_LSTM(data,B_Residual):
 
@@ -135,8 +135,9 @@ def Save_B_Residual_LSTM(data,B_Residual):
     data.index = data['Time']
     B_Residual.index = data.index
     data_set.index = data.index
-    data_set[['r_ss','theta_ss','phi_ss','LocalTime']] = data[['r_ss','theta_ss','phi_ss','LocalTime']]
+    data_set[['r','theta','phi','r_ss','theta_ss','phi_ss','LocalTime']] = data[['r','theta','phi','r_ss','theta_ss','phi_ss','LocalTime']]
     data_set[['Br_ss','Btheta_ss','Bphi_ss']] = B_Residual[['Br_ss','Btheta_ss','Bphi_ss']]
+    data_set[['Br','Btheta','Bphi','Btotal']] = B_Residual[['Br','Btheta','Bphi','Btotal']]
 
     data_set.to_csv('JunoFGMData/Processed_Data/LSTM_B_ResidualData_2h.csv')
     print(data_set)
@@ -145,21 +146,26 @@ def Save_B_Residual_LSTM(data,B_Residual):
 if __name__ == '__main__':
 
     # data, B_In, B_Ex = read_data(year_doy_pj)
-    data = read_data(year_doy_pj)
-    data.to_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_1s_2h.csv')
+    # data = read_data(year_doy_pj)
+    # data.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_1s_2h.csv')
+    # data.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_60s_24h.csv')
     # print('Data read and saved')
 
 
-    # B_Ex.to_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Ex_60s_24h.csv')
+    # B_Ex.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Ex_1s_2h.csv')
+    # B_Ex.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Ex_60s_24h.csv')
     # print('External Field calculated and saved')
     #
-    # B_In.to_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_In_60s_24h.csv')
+    # B_In.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_In_1s_2h.csv')
+    # B_In.to_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_In_60s_24h.csv')
     # print('Internal field calculated and saved')
 
-    # data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_60s_24h.csv')
-    # data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_1s_2h.csv')
-    # # B_Residual = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Residual_60s_24h.csv')
-    # B_Residual = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_B_Residual_1s_2h.csv')
-    # Save_B_Residual_LSTM(data,B_Residual)
+    # data = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_60s_24h.csv')
+    data = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_1s_2h.csv')
+    # # B_Residual = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Residual_60s_24h.csv')
+    B_Residual = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Residual_1s_2h.csv')
+    # print(B_Residual.keys())
+
+    Save_B_Residual_LSTM(data,B_Residual)
 
 

@@ -21,7 +21,7 @@ def calculate_rms_error(B_pred, B_obs):
 def plot_rms_data_Orbits(RMS_df, titles,path,Nmax_Internal, Nmax_External,Model_Numbers=3):
     x_axes = ['PJ', 'Longitude', 'LocalTime']  # The different x-axes for plotting
 
-    fig, axes = plt.subplots(nrows=len(titles), ncols=3, figsize=(18, 10 * len(titles)))
+    fig, axes = plt.subplots(nrows=len(titles), ncols=3, figsize=(30, 10 * len(titles)))
     # Adjust the size and layout dynamically based on the number of components
     plt.subplots_adjust(hspace=0.6, wspace=0.4)  # Adjust space between plots
 
@@ -73,7 +73,7 @@ def plot_rms_data_Orbits(RMS_df, titles,path,Nmax_Internal, Nmax_External,Model_
 
 
 def Plot_RMS_Orbits(degree=30,Nmax_Internal=1,Nmax_External=1,Coordinate='SS',Plot_Save_path='Result_pic',ExAndIn_path = 'Spherical_Harmonic_Model/First50_Orbit_Model_External',Method='SVD',
-                    LSTM_path='LSTM/magnetic_field_model.h5'):
+                    LSTM_model_number = 2,x_cols = ['r', 'theta', 'phi'],y_cols = ['Br_ss', 'Btheta_ss', 'Bphi_ss']):
 
     year_doy_pj = {'2016': [[240, 1], [346, 3]],
                    '2017': [[33, 4], [86, 5], [139, 6], [191, 7], [244, 8], [297, 9], [350, 10]],
@@ -127,7 +127,9 @@ def Plot_RMS_Orbits(degree=30,Nmax_Internal=1,Nmax_External=1,Coordinate='SS',Pl
             B_SVD_day = Spherical_Harmonic_Inversion_ExAndInternal.calculate_Bfield(data_day, Nmax_Internal=Nmax_Internal, Nmax_External=Nmax_External,
                                                path=ExAndIn_path, method=Method,Coordinate=Coordinate)
             # The LSTM Model
-            B_LSTM_day = LSTM_Simulation(data_day,model_path=LSTM_path)
+            B_LSTM_day = LSTM_Simulation(data_day, x_cols=x_cols, y_cols=y_cols,
+                                         model_path=f'LSTM/magnetic_field_model_{LSTM_model_number}.h5',
+                                         scaler_path=f'LSTM/scaler_model_{LSTM_model_number}.pkl')
 
             B_JRM = B_In_day + B_Ex_day
             B_JRM['Btotal'] = np.sqrt(B_JRM['Br_ss'] ** 2 + B_JRM['Btheta_ss'] ** 2 + B_JRM['Bphi_ss'] ** 2)
@@ -262,35 +264,7 @@ def data_Add_Model(data,B_Model,Model_name):
 
     return data
 
-
-if __name__ == '__main__':
-
-    ExAndIn_path = f'Spherical_Harmonic_Model/First50_Orbit_Model_ExAndInternal_24h'
-    LSTM_path = 'LSTM/magnetic_field_model.h5'
-    # Plot the RMS
-    # Plot_RMS_Orbits(ExAndIn_path=ExAndIn_path,LSTM_path=LSTM_path)
-
-    # PLot the B residual
-    # Load data and assume you set up data as previously explained
-    data = pd.read_csv('JunoFGMData/Processed_Data/LSTM_B_ResidualData_2h.csv', index_col='Time')
-    data = pd.read_csv('JunoFGMData/Processed_Data/Fist_50_Orbits_Data_1s_2h.csv',index_col='Time')
-    data_residual = pd.read_csv('JunoFGMData/Processed_Data/LSTM_B_ResidualData_2h.csv', index_col='Time')
-    data.index = pd.to_datetime(data.index)
-    # print(data.keys())
-    data_residual.index = pd.to_datetime(data_residual.index)
-    data_residual[['LocalTime', 'r', 'Latitude_ss', 'X_ss', 'Y_ss', 'Z_ss']] = data[['LocalTime', 'r', 'Latitude_ss', 'X_ss', 'Y_ss', 'Z_ss']]
-    # print(data_residual.keys())
-    Orbit = 11
-    time = Data_Date.find_date_by_orbit(Orbit)
-
-    data_residual = data_residual.loc[time]
-    data = data.loc[time]
-
-    data_residual['Btotal'] = np.sqrt(data_residual['Br_ss'] ** 2 + data_residual['Btheta_ss'] ** 2 + data_residual['Bphi_ss'] ** 2)
-
-    '''
-    
-    year_doy = {'2023':[136]}
+def get_ExtraOrbit_data(year_doy = {'2023':[136]}):
     # read data
     Data = Juno_Mag_MakeData_Function.Read_Data(year_doy, freq=1)
 
@@ -298,7 +272,7 @@ if __name__ == '__main__':
     PeriJovian_time = Data['r'].idxmin()
     # 2 hour window data
     Time_start = PeriJovian_time - Juno_Mag_MakeData_Function.hour_1 * 1
-    Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 3
+    Time_end = Time_start + Juno_Mag_MakeData_Function.hour_1 * 2
 
     data_day = Data.loc[Time_start:Time_end]
     # data_day = data_day[::60]
@@ -310,18 +284,62 @@ if __name__ == '__main__':
     B_In_day = CoordinateTransform.SysIIItoSS_Bfield(data_day, B_In_day)
 
     data_residual = data_day - B_Ex_day - B_In_day
-    data_residual['Btotal'] = np.sqrt(data_residual['Br_ss'] ** 2 + data_residual['Btheta_ss'] ** 2 + data_residual['Bphi_ss'] ** 2)
-    data_residual[['r_ss','theta_ss','phi_ss']] = data_day[['r_ss','theta_ss','phi_ss']]
-    print(data_residual.describe())
-    '''
+    data_residual['Btotal'] = np.sqrt(
+        data_residual['Br_ss'] ** 2 + data_residual['Btheta_ss'] ** 2 + data_residual['Bphi_ss'] ** 2)
+    data_residual[['r_ss', 'theta_ss', 'phi_ss']] = data_day[['r_ss', 'theta_ss', 'phi_ss']]
 
-    LSTM_Model = LSTM_Simulation(data_residual,model_path=LSTM_path)
+    return data_day,data_residual
+
+
+if __name__ == '__main__':
+
+    ExAndIn_path = f'Spherical_Harmonic_Model/First50_Orbit_Model_ExAndInternal_24h'
+    LSTM_model_number = 5
+    # LSTM_model_number = 3
+    x_cols = ['r', 'theta', 'phi','LocalTime']
+    # x_cols = ['r', 'theta', 'phi','Timestamp']
+    # x_cols = ['r', 'theta', 'phi','LocalTime','Timestamp']
+    y_cols = ['Br_ss', 'Btheta_ss', 'Bphi_ss']
+    # Plot the RMS
+    # Plot_RMS_Orbits(ExAndIn_path=ExAndIn_path,LSTM_model_number=LSTM_model_number,x_cols=x_cols,y_cols=y_cols)
+
+    # PLot the B residual
+    # Load data and assume you set up data as previously explained
+
+
+    # data = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_Data_1s_2h.csv',index_col='Time')
+    # data_residual = pd.read_csv('JunoFGMData/Processed_Data/First_50_Orbits_B_Residual_1s_2h.csv', index_col='Time')
+    # data.index = pd.to_datetime(data.index)
+    # data_residual.index = pd.to_datetime(data_residual.index)
+    #
+    # Orbit = 11
+    # time = Data_Date.find_date_by_orbit(Orbit)
+    #
+    # data_residual = data_residual.loc[time]
+    # data = data.loc[time]
+    # data['Time'] = data.index
+    # data['Timestamp'] = data['Time'].apply(lambda x:x.timestamp())
+
+
+
+    data, data_residual = get_ExtraOrbit_data(year_doy={'2023':[136]})
+    print(data.keys())
+    data['Time'] = data.index
+    data['Timestamp'] = data['Time'].apply(lambda x: x.timestamp())
+
+
+
+
+    LSTM_Model = LSTM_Simulation(data, x_cols=x_cols, y_cols=y_cols,
+                                 model_path=f'LSTM/magnetic_field_model_{LSTM_model_number}.h5',
+                                 scaler_path=f'LSTM/scaler_model_{LSTM_model_number}.pkl')
 
     data_residual = data_Add_Model(data_residual,LSTM_Model,'LSTM')
 
     # The Residual Model
-    B_SVD = Spherical_Harmonic_Inversion_ExAndInternal.calculate_Bfield(data_residual, Nmax_Internal=1,
-                                                                            Nmax_External=1,
+
+    B_SVD = Spherical_Harmonic_Inversion_ExAndInternal.calculate_Bfield(data, Nmax_Internal=1,
+                                                                            Nmax_External=3,
                                                                             path=ExAndIn_path, method='SVD',
                                                                             Coordinate='SS')
     data_residual = data_Add_Model(data_residual,B_SVD,'SVD')
@@ -337,5 +355,5 @@ if __name__ == '__main__':
     # B_baseline['Btotal'] = np.sqrt(B_baseline['Br_ss']**2+B_baseline['Btheta_ss']**2+B_baseline['Bphi_ss']**2)
     # data_residual = data_Add_Model(data_residual,B_baseline,'Baseline')
 
-    Plot_Model_Result(data_residual,Model_Names=['LSTM','SVD'],Save_fig=True)
-    Plot_Model_Residual_Result(data_residual,Model_Names=['LSTM','SVD'],Save_fig=True)
+    Plot_Model_Result(data_residual,Model_Names=['LSTM','SVD'],Save_fig=False)
+    Plot_Model_Residual_Result(data_residual,Model_Names=['LSTM','SVD'],Save_fig=False)

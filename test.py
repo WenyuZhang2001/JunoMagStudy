@@ -93,4 +93,4 @@ import Spherical_Harmonic_InversionModel_Functions
 # # Load the model
 # loaded_model = tf.keras.models.load_model(model_path)
 
-print(np.sqrt(4900**2+2665**2+1724**2))
+# print(np.sqrt(4900**2+2665**2+1724**2))
